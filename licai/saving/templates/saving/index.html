@@ -1,0 +1,225 @@
+{% load static %}
+<html lang="zh-Hans">
+    <head>
+        <meta charset="utf-8">
+        <title>Account History</title>
+        <link href="{% static 'saving/jquery-ui/jquery-ui.css' %}" rel="stylesheet">
+        <script src="{% static 'saving/jquery-ui/external/jquery/jquery.js' %}"></script>
+        <script src="{% static 'saving/jquery-ui/jquery-ui.js' %}"></script>
+        <script src="{% static 'saving/echarts.min.js' %}"></script>
+        <style type="text/css">
+        </style>
+    </head>
+    <body>
+        <div id="the_chart" style="width: 600px;height:400px;"></div>
+    <p>
+    <label>Bucket</label>
+    <div id="ecSelBkt"></div>
+    </p>
+
+    <p>
+    <label>Marcket</label>
+    <div id="ecSelMkt"></div>
+</p>
+
+    <p>
+        <label>Date</label>
+        <div id="Date" name="Date"></div>
+    </p>
+
+    <p>
+        <label>Bucket</label>
+        <div id="SelBkt"></div>
+    </p>
+    <p>
+    <label>Market</label>
+        <div id="SelMkt"></div>
+    </p>
+    <div id="controlgroup">
+    <p>
+        <label for="BuySell">Buy / Sell </label>
+        <input id="BuySell" name="BuySell" value="0">
+    </p>
+    <p>
+        <label for="Change">or Change </label>
+        <input id="Change" name="Change" value="0">
+    </p>
+    <p>
+        <button id="DO" name="DO">DO</button>
+    </p>
+    
+<script type="text/javascript">
+
+/**
+数据相关
+**/
+var ID_LBL = {'Y':'养', 'L':'理', 'X':'消', 'C':'存', 'Z':'债', 'J':'基', 'G':'股', 'Q':'期', 'All':'All'}
+var HIS_LST = [{% for hist in all_hist %}
+['{{hist.date}}', '{{hist.bm}}', {{hist.fund}}, {{hist.nv}}],{% endfor %}
+]
+
+var BM_DCT = {}
+function push_BMdct_value(key, value){
+    if(key in BM_DCT){
+        BM_DCT[key].push(value);
+    }else{
+        BM_DCT[key] = [value];
+    }
+}
+
+for(var i=0; i<HIS_LST.length; i++){
+    var his = HIS_LST[i];
+    push_BMdct_value(his[1], his)
+}
+
+KEY_LST = []
+for (var key in BM_DCT){
+    KEY_LST.push(key)
+}
+KEY_LST.sort(function(a, b){
+    if(a == b) return 0
+    if(a == "**") return -1
+    if(b == "**") return 1
+    if(a[1] == "*") return -1
+    if(b[1] == "*") return 1
+    if(a[0] == "*") return -1
+    if(b[0] == "*") return 1
+    return a < b ? -1 : 1;
+})
+
+var DATASET = []
+for (var key of KEY_LST){
+    DATASET.push({
+        source: BM_DCT[key]
+    })
+}
+
+
+/**
+echarts的部分
+**/
+var myChart = echarts.init($('#the_chart')[0]);
+var option = {
+    legend: {},
+    tooltip:{},
+    dataset: DATASET,
+    xAxis: {type: 'time'},
+    yAxis:[{type:'value'}, {type:'value'}],
+    series:[{
+        encode: {x: 0, y:3,},
+        type: "line",
+        yAxisIndex: 0,
+        datasetIndex: 0,
+      },
+      {
+        encode: {x: 0, y:2,},
+        type: "bar",
+        yAxisIndex: 1,
+        datasetIndex: 0,
+      }]
+
+};
+
+myChart.setOption(option);
+
+/** 
+UI 相关 
+**/
+ID_ALL = 'All'
+function All_key(key){ return (key == '*') ? ID_ALL: key}
+function star_key(key){ return (key == ID_ALL) ? '*': key}
+function push_if_not_in(lst, value){
+    if(lst.indexOf(value) == -1){
+        lst.push(value)
+    }
+}
+
+KEY_B = []
+KEY_M = []
+
+for(var key of KEY_LST){
+    push_if_not_in(KEY_B, All_key(key[0]))
+    push_if_not_in(KEY_M, All_key(key[1]))
+}
+
+function echart_bm_clicked(){
+    var b = $('input[name="ecBkt"]:checked').val();
+    var m = $('input[name="ecMkt"]:checked').val();
+    b=star_key(b)
+    m=star_key(m)
+    bm = `${b}${m}`
+    var idx = KEY_LST.indexOf(bm)
+    if(idx == -1) return
+    option.series[0].datasetIndex = idx
+    option.series[1].datasetIndex = idx
+    myChart.setOption(option)
+    myChart.resize()
+}
+
+function create_chart_filter(div_id, key_list, name, chk_key){
+    for(var key of key_list){
+        var checked = (key == chk_key) ? 'checked="checked"' : ''
+        var id = name + key;
+        var label = ID_LBL[key];
+        var input = `<input type="radio" id="${id}" name="${name}" value="${key}" ${checked}><label for="${id}">${label}</label>`
+        $(div_id).append(input);
+        var ctl = $("#" + id)
+        ctl.click(echart_bm_clicked)
+    }
+    $(div_id).buttonset();
+}
+
+create_chart_filter('#ecSelBkt', KEY_B, 'ecBkt', ID_ALL)
+create_chart_filter('#ecSelMkt', KEY_M, 'ecMkt', ID_ALL)
+create_chart_filter('#SelBkt', ['Y', 'L', 'X'], 'Bkt', 'L')
+create_chart_filter('#SelMkt', ['C', 'Z', 'J', 'G', 'Q'], 'Mkt', 'J')
+
+$("#Date").datepicker({
+    dateFormat: 'yymmdd', 
+    changeYear:true, 
+    changeMonth: true,
+    dayNamesMin : [ "日", "一", "二", "三", "四", "五", "六"],
+    monthNamesShort: [ "一月", "二月", "三月", "四月", "五月", "六月","七月", "八月", "九月", "十月", "十一月", "十二月" ],
+    firstDay: 1,
+    showMonthAfterYear: true,
+    });
+
+$("#BuySell").spinner({step: 0.1, numberFormat: "n"});
+$("#Change").spinner({step: 0.1, numberFormat: "n"});
+$("#DO").button();
+
+$("#DO").click(function(){
+    var date = $("#Date").val();
+    var buysel = $("#BuySell").val();
+    var change = $("#Change").val();
+    var Bkt = $('input[name="Bkt"]:checked').val();
+    var Mkt = $('input[name="Mkt"]:checked').val();
+
+    var url =  "{% url 'saving:change' '10000000' 'ARG_B' 'ARG_M' 200 %}";
+    url = url.replace('10000000',date);
+    url = url.replace('ARG_B', Bkt);
+    url = url.replace('ARG_M', Mkt);
+    
+    if(buysel != 0){
+        if(buysel < 0){
+            url = url.replace('200', -buysel); //neg to pos
+            url = url.replace('change','sell');
+        }else{
+            url = url.replace('200', buysel);
+            url = url.replace('change','buy');
+        }
+        window.location.href= url
+        return
+    }
+
+    if(change != 0){
+        url = url.replace('200', change);
+        window.location.href= url
+    }
+    
+});
+
+
+</script>
+</body>
+<html>

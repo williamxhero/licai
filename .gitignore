@@ -1,0 +1,7 @@
+.venv
+__pycache__
+/*.bat
+/test.py
+temp.py
+/licai/saving/migrations
+*.sqlite3
