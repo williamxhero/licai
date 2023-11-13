@@ -12,6 +12,16 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
+''' 
+create file: `licai/licai/my_setting.py`
+
+``` python
+SECRET_KEY = 'django-insecure-...................'
+ALLOWED_HOSTS = '0.0.0.0' # server ip
+```
+'''
+from licai.licai import my_setting
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,12 +30,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-4=xo&1ca%t-(jer9!==-q$m_eui382c@%gm+mm7$wnw*%_*6e*'
+SECRET_KEY = my_setting.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+	my_setting.ALLOWED_HOSTS,
+    '127.0.0.1',
+]
 
 
 # Application definition

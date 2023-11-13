@@ -5,3 +5,4 @@ __pycache__
 temp.py
 /licai/saving/migrations
 *.sqlite3
+licai/licai/my_setting.py
